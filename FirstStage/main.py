@@ -50,7 +50,7 @@ async def main():
         
         group_id = ids.get(f'group{exam['group']}')
         student_id = ids.get(f'student{exam['student_name']}|{exam['group']}|{exam['faculty']}')
-
+        faculty_id = ids.get(f'faculty{exam["faculty"]}')
         discipline_id = ids.get(f'discipline{exam['subject']}') or \
             await db.add_discipline(exam['subject'])
         ids[f'discipline{exam['subject']}'] = discipline_id
@@ -61,6 +61,7 @@ async def main():
         
         lecturer_id = ids.get(f'lecturer{exam['teacher']}') or \
             await db.add_lecturer(exam['teacher'])
+        await db.add_lecturer_faculty(lecturer_id, faculty_id)
         ids[f'lecturer{exam['teacher']}'] = lecturer_id
         
         assessment_id = ids.get(f'assessment{exam['grade']}') or \
