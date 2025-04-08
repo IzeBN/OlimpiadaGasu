@@ -1,6 +1,6 @@
 import asyncpg as sq
 
-from utils import q, t
+from database.utils import q, t
 
 class Database:
     
@@ -23,7 +23,7 @@ class Database:
             try:
                 return await method(self, *args, **kwargs) 
             except Exception as e:
-                print(e)
+                print(f'{method.__name__} | {e}')
         return wrapper
     
     @databaseCheckConection
@@ -50,8 +50,8 @@ class Database:
     async def add_faculty(self, faculty_abbrev, faculty_title):
         async with self.db.acquire() as conn:
             id = await conn.fetchval("""--sql
-                                     SELECT * FROM faculties WHERE faculty_title = $1""",
-                                     faculty_title)
+                                     SELECT * FROM faculties WHERE faculty_abbreviation = $1""",
+                                     faculty_abbrev)
             if not id:
                 async with conn.transaction():
                     id = await conn.fetchval(q.INSERT('faculties') + 'RETURNING id',
@@ -62,8 +62,8 @@ class Database:
     async def add_region(self, region_code, region_title):
         async with self.db.acquire() as conn:
             id = await conn.fetchval("""--sql
-                                     SELECT id FROM regions WHERE region_code = $1""",
-                                     region_code)
+                                     SELECT id FROM regions WHERE region_title = $1""",
+                                     region_title)
             if not id:
                 async with conn.transaction():
                     id = await conn.fetchval(q.INSERT('regions') + 'RETURNING id',
@@ -79,7 +79,7 @@ class Database:
                                           region_id, city_title)
             if not city_id:
                 async with conn.transaction():
-                    city_id = await conn.fethcval(q.INSERT('cities') + 'RETURNING id',
+                    city_id = await conn.fetchval(q.INSERT('cities') + 'RETURNING id',
                                              region_id, city_title)
         
             return city_id
@@ -95,26 +95,27 @@ class Database:
                 async with conn.transaction():
                     id = await conn.fetchval(q.INSERT('phone_numbers') + 'RETURNING id',
                                              fio, phone_number)
-                    
+            return id
     @databaseCheckConection
     async def add_parents(self, first_parent_id, second_parent_id):
         async with self.db.acquire() as conn:
-            params, query = [], """--sql SELECT id FROM parents WHERE"""
+            params, query = [], """SELECT id FROM parents WHERE """
             if not first_parent_id and second_parent_id:
-                query += """--sql first_parent IS NULL AND second_parent = $1"""
+                query += """first_parent IS NULL AND second_parent = $1"""
                 params.append(second_parent_id)
             elif not second_parent_id and first_parent_id:
-                query += """--sql first_parent = $1 AND second_parent IS NULL"""
+                query += """first_parent = $1 AND second_parent IS NULL"""
                 params.append(first_parent_id)
             else:
-                query += """--sql first_parent = $1 AND second_parent = $2"""
+                query += """first_parent = $1 AND second_parent = $2"""
                 params = [first_parent_id, second_parent_id]
-            id = await conn.fetchval(query, params)
+            id = await conn.fetchval(query, *params)
             if not id:
                 async with conn.transaction():
                     id = await conn.fetchval(q.INSERT('parents') + "RETURNING id", 
                                              first_parent_id, second_parent_id)
             return id
+        
         
     @databaseCheckConection
     async def add_group(self, group_title, group_faculty, group_specialty):
@@ -169,14 +170,15 @@ class Database:
     @databaseCheckConection
     async def add_statement(self, statement_number, discipline_id, group_id):
         async with self.db.acquire() as conn:
-            last = await conn.fetchval("""--sql
+            id = await conn.fetchval("""--sql
                                        SELECT id FROM statements WHERE statement_number = $1""",
                                        statement_number)
-            if not last:
+            if not id:
                 async with conn.transaction():
-                    await conn.execute(q.INSERT('statements'), 
+                    id = await conn.fetchval(q.INSERT('statements') + " RETURNING id", 
                                        statement_number, discipline_id,
                                        group_id)
+            return id
     @databaseCheckConection
     async def add_assessment(self, assessment_title):
         async with self.db.acquire() as conn:
@@ -184,7 +186,7 @@ class Database:
                                      SELECT id FROM assessments WHERE assessment_title = $1""",
                                      assessment_title)
             async with conn.transaction():
-                id = await conn.fetchval(q.INSERT('assessments') + 'RETURNING id',
+                id = await conn.fetchval(q.INSERT('assessments') + ' RETURNING id',
                                          assessment_title)
                 
         return id
@@ -192,9 +194,11 @@ class Database:
     @databaseCheckConection
     async def add_student(self, fio, gender, birth_date, city_id, phone_number_id, group_id, faculty_id, specialty_id, parents_id):
         async with self.db.acquire() as conn:
-            id = await conn.fetchval("""--sql
-                                     SELECT id FROM students WHERE fio = $1 AND phone_number_id = $2 AND group_id = $3""",
-                                     fio, phone_number_id, group_id)
+            params = [fio, group_id]
+            if not phone_number_id is None:  params.append(phone_number_id)
+            id = await conn.fetchval(f"""--sql
+                                     SELECT id FROM students WHERE fio = $1 AND group_id = $2 AND phone_number_id {'IS NULL' if not phone_number_id else "= $3"}""",
+                                     *params)
             if not id:
                 async with conn.transaction():
                     id = await conn.fetchval(q.INSERT('students') + 'RETURNING id',
@@ -214,7 +218,13 @@ class Database:
                     await conn.execute(q.INSERT('exams'), statement_id, student_id,
                                        lecturer_id, assessment_id, exam_date, due_date)
                     
-                
+    @databaseCheckConection
+    async def find_group_by_title(self, title):
+        async with self.db.acquire() as conn:
+            group = await conn.fetchrow("""--sql
+                                        SELECT * FROM groups WHERE group_title = $1""",
+                                        title)
+            return None if not group else t.Group(*group)
                 
 
                 

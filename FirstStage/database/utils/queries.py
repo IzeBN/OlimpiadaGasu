@@ -68,7 +68,7 @@ CREATE_TABLES = """--sql
 
                 CREATE TABLE IF NOT EXISTS assessments(
                     id SERIAL PRIMARY KEY,
-                    assessment_title VARCHAR(16)
+                    assessment_title VARCHAR(32)
                 );
 
                 CREATE TABLE IF NOT EXISTS students(
