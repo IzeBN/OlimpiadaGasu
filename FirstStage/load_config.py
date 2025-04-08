@@ -33,7 +33,7 @@ config = Config(
     )
 )
 
-STUDENTS_INPUT = students_data = [
+STUDENTS_INPUT = [
     {
         "full_name": "Петров Денис Платонович",
         "gender": "Муж",
