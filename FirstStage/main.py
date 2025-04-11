@@ -70,8 +70,5 @@ async def main():
         await db.add_exam(statement_id, student_id, lecturer_id, assessment_id,
                           exam_date, due_date)
     
-    # for a, b in ids.items():
-    #     if a.startswith('statement'): print(f"{a} | {b}")
-        
 if __name__ == "__main__":
     asyncio.run(main())

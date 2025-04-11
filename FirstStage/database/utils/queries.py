@@ -123,7 +123,3 @@ def INSERT(table):
             INSERT INTO {table}({', '.join(VALUES_TABLES.get(table))}) VALUES({', '.join([f"${i}" for i in range(1, len(VALUES_TABLES.get(table)) + 1)] )})
             """
             
-def UPDATE(table, params, filter):
-    return f"""--sql
-            UPDATE {table} SET {', '.join([f'{param} = ${i + 1}' for i, param in enumerate(params)])} WHERE {filter}
-            """

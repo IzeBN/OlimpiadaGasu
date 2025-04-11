@@ -22,6 +22,7 @@ class Config:
 env = Env()
 env.read_env('.env')
 
+
 config = Config(
     database=DatabaseConfig(
         dsn=f'postgresql://{env.str('DATABASE_USERNAME')}:{env.str('DATABASE_PASSWORD')}@{env.str('DATABASE_HOST')}:{env.int('DATABASE_PORT')}/{env.str('DATABASE_NAME')}',

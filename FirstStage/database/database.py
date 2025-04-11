@@ -16,7 +16,7 @@ class Database:
         )
         self.__isConnection = True
         
-    def databaseCheckConection(method):
+    def databaseCheckConection(method: function):
         async def wrapper(self, *args, **kwargs):
             if not self.__isConnection:
                 await self.__connect()
@@ -227,7 +227,11 @@ class Database:
             return None if not group else t.Group(*group)
                 
 
-                
+    @databaseCheckConection
+    async def select_table(self, table):
+        async with self.db.acquire() as conn:
+            rows = await conn.fetch(f"SELECT * FROM {table}")
+            return [dict(row) for row in rows]
 
                 
                 
